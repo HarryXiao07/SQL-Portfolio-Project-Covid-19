@@ -7,14 +7,14 @@ ORDER BY 3,4
 
 SELECT *
 FROM Portfolio..CovidVaccinations
-Where continent IS NOT NULL
+WHERE continent IS NOT NULL
 AND new_vaccinations IS NOT NULL
 ORDER BY 3,4
 
 
 SELECT location, date, total_cases, new_cases, total_deaths, population
 FROM Portfolio..CovidDeaths
-Where continent IS NOT NULL
+WHERE continent IS NOT NULL
 ORDER BY 1, 2
 
 
@@ -41,7 +41,7 @@ ORDER BY 1, 2
 
 SELECT location, population, MAX(total_cases) AS HighestInfectionCount, MAX((total_cases/population))*100 AS PercentPopulationInfected
 FROM Portfolio..CovidDeaths
-Group by location, population
+GROUP BY location, population
 ORDER BY PercentPopulationInfected DESC
 
 
@@ -49,8 +49,8 @@ ORDER BY PercentPopulationInfected DESC
 
 SELECT location, MAX(CAST(total_deaths AS bigint)) AS TotalDeathCount
 FROM Portfolio..CovidDeaths
-Where continent IS NOT NULL
-Group by location
+WHERE continent IS NOT NULL
+GROUP BY location
 ORDER BY TotalDeathCount DESC
 
 
@@ -58,8 +58,8 @@ ORDER BY TotalDeathCount DESC
 
 SELECT location, MAX(CAST(total_deaths AS bigint)) AS TotalDeathCount
 FROM Portfolio..CovidDeaths
-Where continent IS NULL
-Group by location
+WHERE continent IS NULL
+GROUP BY location
 ORDER BY TotalDeathCount DESC
 
 
@@ -88,25 +88,25 @@ ORDER BY 2,3
 -- USE CTE to perform Calculation on Partition By in previous query
 
 With PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
-as
+AS
 (
-Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
 , SUM(CONVERT(bigint,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
 --, (RollingPeopleVaccinated/population)*100
 From Portfolio..CovidDeaths dea
-Join Portfolio..CovidVaccinations vac
+JOIN Portfolio..CovidVaccinations vac
 	On dea.location = vac.location
-	and dea.date = vac.date
-where dea.continent is not null 
+	AND dea.date = vac.date
+where dea.continent IS NOT NULL 
 --order by 2,3
 )
-Select *, (RollingPeopleVaccinated/Population)*100
-From PopvsVac
+SELECT *, (RollingPeopleVaccinated/Population)*100
+FROM PopvsVac
 
 -- TEMP TABLE to perform Calculation on Partition By in previous query
 
-DROP Table if exists #PercentPopulationVaccinated
-Create Table #PercentPopulationVaccinated
+DROP TABLE if exists #PercentPopulationVaccinated
+CREATE TABLE #PercentPopulationVaccinated
 (
 Continent nvarchar(255),
 Location nvarchar(255),
@@ -116,30 +116,30 @@ New_vaccinations numeric,
 RollingPeopleVaccinated numeric
 )
 
-Insert into #PercentPopulationVaccinated
-Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+INSERT INTO #PercentPopulationVaccinated
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
 , Sum(Convert(bigint,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location,
 	dea.Date) AS RollingPeopleVaccinated
 FROM Portfolio..CovidDeaths dea
 JOIN Portfolio..CovidVaccinations vac
 	On dea.location = vac.location
-	and dea.date = vac.date
+	AND dea.date = vac.date
 --where dea.continent is not null 
 --order by 2,3
 
-Select *, (RollingPeopleVaccinated/Population)*100
-From #PercentPopulationVaccinated
-Where New_vaccinations IS NOT NULL
+SELECT *, (RollingPeopleVaccinated/Population)*100
+FROM #PercentPopulationVaccinated
+WHERE New_vaccinations IS NOT NULL
 
 -- Creating View to store data for later visualizations
 
-Create View PercentPopulationVaccinated as
-Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+CREATE View PercentPopulationVaccinated as
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
 , SUM(CONVERT(bigint,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
 --, (RollingPeopleVaccinated/population)*100
-From Portfolio..CovidDeaths dea
-Join Portfolio..CovidVaccinations vac
+FROM Portfolio..CovidDeaths dea
+JOIN Portfolio..CovidVaccinations vac
 	On dea.location = vac.location
-	and dea.date = vac.date
-where dea.continent is not null
+	AND dea.date = vac.date
+WHERE dea.continent IS NOT NULL
 -- ORDER BY 2,3
